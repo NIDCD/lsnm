@@ -113,6 +113,8 @@ def run(model, weights_list, script, tvb_link):
 
     generateSubject = False
 
+    neural_net=""
+
     global noise
 
     # load a TVB simulation of a 998-node brain and uses it to provide variability
