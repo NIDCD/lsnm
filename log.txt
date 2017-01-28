@@ -1,9 +1,9 @@
-* Simulation Start Time: Sat Jan 28 17:49:00 2017
-* Simulation End Time: Sat Jan 28 18:02:19 2017
+* Simulation Start Time: Sat Jan 28 18:14:04 2017
+* Simulation End Time: Sat Jan 28 18:27:02 2017
 * Simulation duration (timesteps): 39600
 * Model description used: model.txt
 * Weights list used: weightslist.txt
 * Neural net used: 
-* Simulation script used: script_to_replicate_Horwitz_2005_Fig_4_and_5.py
+* Simulation script used: script_DMS_198_seconds.py
 * Were weights changed to generate a new subject? NO
 * Was TVB Connectome used in the simulation? NO
