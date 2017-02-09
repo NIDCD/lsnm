@@ -74,9 +74,6 @@ try:
 except ImportError:
     pass
 
-# import 'pyplot' modules to visualize outputs
-import matplotlib.pyplot as plt
-
 # import 'numpy' module, which contains useful matrix functions
 import numpy as np
 
@@ -422,7 +419,7 @@ def run(model, weights_list, script, tvb_link):
                         # now we decide whether the weights will be multiplied by a random amount
                         # varying between that amount and 1.0 in order to generate a new subject
                         if generateSubject == True:
-                            connectionWeight = destination[1] * random.uniform(subject_variation, 1)
+                            connectionWeight = destination[1] * rdm.uniform(subject_variation, 1)
                         else:
                             connectionWeight = destination[1]
 
