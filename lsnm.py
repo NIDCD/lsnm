@@ -491,9 +491,6 @@ def run(model, weights_list, script, tvb_link):
             # convert current TVB connectome electrical activity to a numpy array 
             RawData = numpy.array(raw[0][1])
             
-            # let the user know the percentage of simulation that has elapsed
-            self.notifyProgress.emit(int(round(t*sim_percentage,0)))
-
             # check script to see if there are any event to be presented to the LSNM
             # network at current timestep t
             current_event=simulation_events.get(str(t))
