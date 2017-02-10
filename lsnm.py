@@ -479,7 +479,7 @@ def run(model, weights_list, script, tvb_link):
         # the following 'for loop' is the main loop of the TVB simulation with the parameters
         # defined above. Note that the LSNM simulator is literally embedded into the TVB
         # simulation and both run concurrently, timestep by timestep.
-        for raw in sim(model=WC, simulation_length=TVB_simulation_length, random_state=random_state.get_state()):
+        for raw in sim(simulation_length=TVB_simulation_length, random_state=random_state.get_state()):
             
             # convert current TVB connectome electrical activity to a numpy array 
             RawData = numpy.array(raw[0][1])
