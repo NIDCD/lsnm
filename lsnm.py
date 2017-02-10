@@ -70,7 +70,8 @@ try:
     import tvb.datatypes.time_series
     from tvb.simulator.plot.tools import *
     import tvb.simulator.plot.timeseries_interactive as ts_int
-    # end of TVB modules import
+    # end of TVB modules import    
+    
 except ImportError:
     pass
 
@@ -85,16 +86,7 @@ import sys
 
 # import module that parses command line input parameters
 import argparse
-
         
-class WilsonCowanPositive(models.WilsonCowan):
-    "Declares a class of Wilson-Cowan models that use the default TVB parameters but"
-    "only allows values between 0 and 1 at integration time. In other words, it clips state"
-    "variables to the range [0,1] when a stochastic integration is used"
-    def dfun(self, state_variables, coupling, local_coupling=0.0):
-        state_variables[state_variables < 0.0] = 0.0
-        state_variables[state_variables > 1.0] = 1.0
-        return super(WilsonCowanPositive, self).dfun(state_variables, coupling, local_coupling)
             
 def run(model, weights_list, script, tvb_link):
 
@@ -166,6 +158,7 @@ def run(model, weights_list, script, tvb_link):
         
     # now load white matter connectivity (998 ROI matrix from TVB demo set, AKA Hagmann's connectome)
     if useTVBConnectome == True:
+        WC = models.WilsonCowan()
         white_matter = connectivity.Connectivity.from_file("connectivity_998.zip")
         
         # Define the transmission speed of white matter tracts (4 mm/ms)
@@ -183,7 +176,7 @@ def run(model, weights_list, script, tvb_link):
         what_to_watch = monitors.Raw()
         
         # Initialize a TVB simulator
-        sim = simulator.Simulator(model=WilsonCowanPositive(), connectivity=white_matter,
+        sim = simulator.Simulator(model=WC, connectivity=white_matter,
                                   coupling=white_matter_coupling,
                                   integrator=euler_int, monitors=what_to_watch)
 
@@ -486,7 +479,7 @@ def run(model, weights_list, script, tvb_link):
         # the following 'for loop' is the main loop of the TVB simulation with the parameters
         # defined above. Note that the LSNM simulator is literally embedded into the TVB
         # simulation and both run concurrently, timestep by timestep.
-        for raw in sim(simulation_length=TVB_simulation_length, random_state=random_state.get_state()):
+        for raw in sim(model=WC, simulation_length=TVB_simulation_length, random_state=random_state.get_state()):
             
             # convert current TVB connectome electrical activity to a numpy array 
             RawData = numpy.array(raw[0][1])
@@ -735,7 +728,7 @@ def run(model, weights_list, script, tvb_link):
                             in_value = in_value - threshold
 
                             # now compute a random value between -0.5 and 0.5
-                            r_value = random.uniform(0,1) - 0.5
+                            r_value = rdm.uniform(0,1) - 0.5
 
                             # multiply it by the noise parameter and add it to input value
                             in_value = in_value + r_value * noise
@@ -874,7 +867,7 @@ def run(model, weights_list, script, tvb_link):
                             in_value = in_value - threshold
 
                             # now compute a random value between -0.5 and 0.5
-                            r_value = random.uniform(0,1) - 0.5
+                            r_value = rdm.uniform(0,1) - 0.5
                             
                             # multiply it by the noise parameter and add it to input value
                             in_value = in_value + r_value * noise
