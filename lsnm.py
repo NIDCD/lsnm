@@ -36,7 +36,7 @@
 #   This file (lsnm.py) was created on January 26 2017.
 #
 #
-#   Author: Antonio Ulloa. Last updated by Antonio Ulloa on January 28 2017
+#   Author: Antonio Ulloa. Last updated by Antonio Ulloa on November 20 2018
 #
 #   Based on computer code originally developed by Malle Tagamets and
 #   Barry Horwitz (Tagamets and Horwitz, 1998)
@@ -158,7 +158,7 @@ def run(model, weights_list, script, tvb_link):
         
     # now load white matter connectivity (998 ROI matrix from TVB demo set, AKA Hagmann's connectome)
     if useTVBConnectome == True:
-        WC = models.WilsonCowan()
+        WC = models.WilsonCowan(variables_of_interest=["E", "I"])
         white_matter = connectivity.Connectivity.from_file("connectivity_998.zip")
         
         # Define the transmission speed of white matter tracts (4 mm/ms)
