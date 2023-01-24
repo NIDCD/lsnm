@@ -10,4 +10,11 @@ python lsnm.py -m model.txt -w weightslist.txt -s script.py -l lsnm_tvb_link.txt
 * script.py is the script of simulation describing all events in the simulated experiment.
 * lsnm_tvb_link.txt is an optional parameter that describes how the LSNM model is embedded into a Virtual Brain (TVB) connectome.
 
-The output is a large number of *.out files in text format that contain time-series of simulated neural and synaptic activity. They are all saved as output files. 
+The output is a large number of *.out files in text format that contain time-series of simulated neural and synaptic activity. They are all saved as output files.
+
+## Steps to install LSNM and run the demo:
+```
+git clone https://github.com/NIDCD/lsnm_command_line.git
+cd lsnm_command_line/demo
+python ../lsnm.py -m model.txt -w weightslist.txt -s script_DMS_198_seconds.py
+```
