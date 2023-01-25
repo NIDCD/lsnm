@@ -13,9 +13,7 @@ lsnm -m model.txt -w weightslist.txt -s script.py -l lsnm_tvb_link.txt
 The output is a large number of *.out files in text format that contain time-series of simulated neural and synaptic activity. They are all saved as output files.
 
 ## Requirements
-```
-Python 2.7
-```
+Python 2.7 on a linux OS is required. LSNM has not been tested on non-linux platforms.
 
 ## How to download / install LSNM:
 ```
