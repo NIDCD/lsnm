@@ -16,9 +16,27 @@ The output is a large number of *.out files in text format that contain time-ser
 ```
 Python 2.7
 ```
-## Steps to install LSNM and run the demo:
+
+## How to download / install LSNM:
 ```
 git clone https://github.com/NIDCD/lsnm_command_line.git
+```
+
+## How to run the LSNM demo:
+```
 cd lsnm_command_line/demo
 python ../lsnm.py -m model.txt -w weightslist.txt -s script_DMS_198_seconds.py
 ```
+
+After the last command above you should see the following output:
+```
+Start Time:  Tue Jan 24 15:09:41 2023
+Building network...
+Saving neural network to file...
+Running simulation...
+Simulation Finished.
+Output data files saved.
+End Time:  Tue Jan 24 15:21:13 2023
+```
+
+
