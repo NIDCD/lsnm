@@ -24,22 +24,16 @@ How to download / install LSNM:
 
 How to run the LSNM demo:
 =========================
-``cd lsnm
-chmod u+x lsnm
-cd demo
-../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds.py``
+``cd lsnm``
+``chmod u+x lsnm``
+``cd demo``
+``../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds.py``
 
 After the last command above you should see the following output:
-``Start Time:  Tue Jan 24 15:09:41 2023
-
-Building network...
-
-Saving neural network to file...
-
-Running simulation...
-
-Simulation Finished.
-
-Output data files saved.
-
-End Time:  Tue Jan 24 15:21:13 2023``
+``Start Time:  Tue Jan 24 15:09:41 2023``
+``Building network...``
+``Saving neural network to file...``
+``Running simulation...``
+``Simulation Finished.``
+``Output data files saved.``
+``End Time:  Tue Jan 24 15:21:13 2023``
