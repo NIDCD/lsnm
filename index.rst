@@ -21,11 +21,13 @@ Python 2.7 on a linux OS is required. LSNM has not been tested on non-linux plat
 How to download / install LSNM
 ===============================
 ::
+
    git clone https://github.com/NIDCD/lsnm.git
 
 How to run the LSNM demo
 =========================
 ::
+
    cd lsnm
    chmod u+x lsnm
    cd demo
