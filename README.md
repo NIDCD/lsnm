@@ -40,3 +40,6 @@ Simulation Finished.
 Output data files saved.
 End Time:  Tue Jan 24 15:21:13 2023
 ```
+
+## How to run the LSNM demo embedded in The Virtual Brain (TVB)
+To run LSNM and TVB together you will need to build a conda environment that contains the TVB packages along with its dependencies. The TVB packages can be downloaded from the TVB github repository at: https://github.com/the-virtual-brain/tvb-root.
