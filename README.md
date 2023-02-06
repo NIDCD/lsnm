@@ -31,13 +31,14 @@ cd demo
 
 After the last command above you should see the following output:
 ```
-Start Time:  Tue Jan 24 15:09:41 2023
+Start Time:  Mon Feb  6 12:27:51 2023
 Building network...
 Saving neural network to file...
 Running simulation...
 Simulation Finished.
 Output data files saved.
-End Time:  Tue Jan 24 15:21:13 2023
+End Time:  Mon Feb  6 12:34:27 2023
+
 ```
 
 ## How to run the LSNM demo embedded in The Virtual Brain (TVB)
