@@ -4,18 +4,17 @@ Command line version of LSNM
 The following syntax should be used:
 
 ```
-lsnm -m model.txt -w weightslist.txt -s script.py -l lsnm_tvb_link.txt
+lsnm -m model.txt -w weightslist.txt -s script -l lsnm_tvb_link.txt
 ```
 
 * `lsnm` is the python script that runs the simulation.
 * `weightlist.txt` contains a list of individual _*.w_ weight files (all should be included in working directory).
-* `script.py` is the script of simulation describing all events in the simulated experiment.
+* `script` is a python script that describes all events in the simulated experiment.
 * `lsnm_tvb_link.txt` is an optional parameter that describes how the LSNM model is embedded into a Virtual Brain (TVB) connectome.
 
-The output is a large number of *.out files in text format that contain time-series of simulated neural and synaptic activity. They are all saved as output files.
+The output is a number of *.out files in text format that contain time-series of simulated neural and synaptic activity.
 
 ## Requirements
-Python 2.7 on a linux OS is required. LSNM has not been tested on non-linux platforms.
 
 ## How to download / install LSNM:
 ```
@@ -27,7 +26,7 @@ git clone https://github.com/NIDCD/lsnm.git
 cd lsnm
 chmod u+x lsnm
 cd demo
-../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds.py
+../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds
 ```
 
 After the last command above you should see the following output:
@@ -44,5 +43,5 @@ End Time:  Tue Jan 24 15:21:13 2023
 ## How to run the LSNM demo embedded in The Virtual Brain (TVB)
 To run LSNM and TVB together you will need to build a conda environment that contains the TVB packages along with its dependencies. The TVB packages can be downloaded from the TVB github repository at: https://github.com/the-virtual-brain/tvb-root. After you have built the TVB enviroment, simply run LSNM as follows:
 ```
-../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds.py -l lsnm_tvb_link.txt 
+../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds -l lsnm_tvb_link.txt 
 ```
