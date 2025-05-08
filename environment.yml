@@ -1,0 +1,14 @@
+name: lsnm
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.6
+  - numpy>=1.19.0
+  - pip
+  - pip:
+    # Add any pip-specific packages here if needed
+    - tvb-simulator
+    - tvb-datatypes
+    - tvb-plot
+    - tvb-library 
