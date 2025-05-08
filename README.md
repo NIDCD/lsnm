@@ -1,4 +1,4 @@
-# LSNM (Large-Scale Neural Modeling) simulator
+# LSNM (Large-Scale Neural Modeling) Brain Simulator
 Command line version of LSNM
 
 The following syntax should be used:
