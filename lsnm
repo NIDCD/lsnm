@@ -64,17 +64,15 @@ import json
 # import time module (needed for recording start and end simulation times in log file
 import time as time_module
 
+tvb_available = False
 try:
-    # import TVB modules only if simulation requires TVB connectome
-    # the following modules are imported from TVB library
-    from tvb.simulator.lab import *
-    import tvb.datatypes.time_series
-    from tvb.simulator.plot.tools import *
+    import tvb.simulator.lab as tvb_lab
+    import tvb.datatypes.time_series as tvb_time_series
+    import tvb.simulator.plot.tools as tvb_tools
     import tvb.simulator.plot.timeseries_interactive as ts_int
-    # end of TVB modules import    
-    
+    tvb_available = True
 except ImportError:
-    pass
+    print("TVB modules not available. Continuing without TVB support.")
 
 # import 'numpy' module, which contains useful matrix functions
 import numpy as np
