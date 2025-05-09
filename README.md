@@ -65,8 +65,7 @@ conda env list
 
 3. To run the demo:
 ```bash
-cd demo
-../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds
+demo/run_demo.sh
 ```
 
 ### Mounting Local Directories
@@ -91,8 +90,8 @@ git clone https://github.com/NIDCD/lsnm.git
 ```
 cd lsnm
 chmod u+x lsnm
-cd demo
-../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds
+cdmod u+x demo/run_demo
+demo/run_demo
 ```
 
 After the last command above you should see the following output:
