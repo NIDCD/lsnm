@@ -96,3 +96,6 @@ data/
 
 # Ignore the weights file
 *.pth
+
+# Ignore output directories
+output*/

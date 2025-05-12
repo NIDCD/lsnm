@@ -119,3 +119,15 @@ The `learn_weights.py` script trains a neural network to generate weights for th
 To learn the weights, run:
 ```bash
 python learn_weights.py --dataset <path_to_dataset> --output <output_weights_file>
+```
+
+## Command Line Arguments
+
+--model: Path to model description file (txt). This file describes the network architecture 
+        including all modules, their dimensions, and parameters for the Wilson-Cowan equations.
+--weights: Path to weights list file (txt). Traditional weights format.
+--pytorch-weights: Path to PyTorch weights file (.pth). Alternative to --weights.
+--script: Path to simulation script (py).
+--links: Path to TVB connectome links file (txt). Optional.
+
+Note: You must specify either --weights OR --pytorch-weights, but not both.

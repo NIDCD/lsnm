@@ -1,0 +1,10 @@
+{
+    "simulation_time": 39600,
+    "parameters": {
+        "timesteps_per_trial": 1100
+    },
+    "events": {
+        "0": {"type": "rest", "duration": 1100},
+        "1100": {"type": "stimulus", "duration": 1100}
+    }
+}

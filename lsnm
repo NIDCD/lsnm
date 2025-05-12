@@ -49,51 +49,166 @@
 #
 # THIS IS THE COMMAND-LINE VERSION OF "sim.py"
 
-# import regular expression modules (useful for reading weight files)
-import re
-
-# import random function modules
-import random as rdm
-
-# import math function modules
-import math
-
-# import json module for storing output data files
-import json
-
-# import time module (needed for recording start and end simulation times in log file
+import sys
 import time as time_module
+import json
+import re
+import random as rdm
+import importlib
+import numpy as np
+import math
+import argparse
+import importlib.util
+import os
 
+try:
+    import torch
+    pytorch_available = True
+except ImportError:
+    pytorch_available = False
+    print("PyTorch not available. Cannot load .pth weights.")
+
+# TVB integration is optional
 tvb_available = False
 try:
-    import tvb.simulator.lab as tvb_lab
-    import tvb.datatypes.time_series as tvb_time_series
-    import tvb.simulator.plot.tools as tvb_tools
-    import tvb.simulator.plot.timeseries_interactive as ts_int
+    from tvb.simulator import models, coupling, connectivity, integrators, monitors, simulator, noise
     tvb_available = True
 except ImportError:
-    print("TVB modules not available. Continuing without TVB support.")
+    print("TVB modules not available. TVB integration disabled.")
 
-# import 'numpy' module, which contains useful matrix functions
-import numpy as np
+def run(model, weights_list, script, tvb_link, pytorch_weights=None, output_dir='.'):
+    """Run the LSNM simulation."""
+    
+    # Initialize weights variables
+    if pytorch_weights and pytorch_available:
+        weights_list = ""
+        weight_files = []
+    elif weights_list:
+        with open(weights_list, 'r') as f:
+            weight_files = [line.strip() for line in f]
+    else:
+        print("Error: Neither weights list nor PyTorch weights provided")
+        sys.exit(1)
 
-# module to import external or user created modules into current script
-import importlib as il
-
-# import 'sys' module, which gives you access to file read/write functions
-import sys
-
-# import module that parses command line input parameters
-import argparse
-
-import importlib
+    if tvb_link and not tvb_available:
+        print("Warning: TVB integration requested but TVB modules not available")
+        print("Running without TVB integration")
+        tvb_link = None
         
-            
-def run(model, weights_list, script, tvb_link):
+    if pytorch_weights and not pytorch_available:
+        print("Error: PyTorch weights specified but PyTorch not available")
+        sys.exit(1)
 
+    if pytorch_weights and pytorch_available:
+        try:
+            weights_dict = torch.load(pytorch_weights)
+            print(f"Loaded PyTorch weights from {pytorch_weights}")
+            
+            # Skip the traditional weights loading process and use PyTorch weights instead
+            weights_list = None
+            
+            # Load modules structure first
+            modules = []
+            print("Loading module structure from model file...")
+            
+            # open the input file containing module declarations
+            with open(model, 'r') as f:
+                modules = [line.split() for line in f]
+            
+            # Convert module dimensions to integers
+            for module in modules:
+                module[1] = int(module[1])
+                module[2] = int(module[2])
+            
+            # Convert parameters to float
+            for module in modules:
+                for i in range(4, 10):
+                    module[i] = float(module[i])
+
+            # Initialize modules with units
+            for module in modules:
+                initial_value = module.pop()
+                x_dim = module[1]
+                y_dim = module[2]
+                unit_matrix = [[[initial_value, 0.0, 0.0, 0.0, []] for x in range(y_dim)] for y in range(x_dim)]
+                module.append(unit_matrix)
+
+            # Convert modules list to dictionary
+            modules = {m[0]: m[1:] for m in modules}
+
+            # Convert PyTorch weights to LSNM format
+            print("Converting PyTorch weights to LSNM format...")
+            synapse_count = 0
+            
+            # Iterate through the PyTorch weights dictionary
+            for layer_name, weights in weights_dict.items():
+                if '_to_' in layer_name:  # Assuming layer names are in format 'source_to_dest'
+                    source_module, dest_module = layer_name.split('_to_')
+                    
+                    if source_module in modules and dest_module in modules:
+                        weights_np = weights.cpu().numpy()
+                        source_dim = modules[source_module][0:2]  # Get x,y dimensions
+                        dest_dim = modules[dest_module][0:2]
+                        
+                        # Reshape weights if necessary
+                        if weights_np.shape != (source_dim[0] * source_dim[1], dest_dim[0] * dest_dim[1]):
+                            weights_np = weights_np.reshape(source_dim[0] * source_dim[1], dest_dim[0] * dest_dim[1])
+                        
+                        # Convert weights to LSNM format
+                        for src_idx in range(weights_np.shape[0]):
+                            src_x = src_idx // source_dim[1]
+                            src_y = src_idx % source_dim[1]
+                            
+                            for dest_idx in range(weights_np.shape[1]):
+                                weight_val = weights_np[src_idx, dest_idx]
+                                if weight_val != 0:  # Only add non-zero weights
+                                    dest_x = dest_idx // dest_dim[1]
+                                    dest_y = dest_idx % dest_dim[1]
+                                    
+                                    # Add weight to source module's unit matrix
+                                    modules[source_module][8][src_x][src_y][4].append([
+                                        dest_module,
+                                        dest_x,
+                                        dest_y,
+                                        float(weight_val)
+                                    ])
+                                    synapse_count += 1
+
+            print(f"Converted {synapse_count} synapses from PyTorch weights")
+            
+        except Exception as e:
+            print(f"Error loading PyTorch weights: {e}")
+            sys.exit(1)
+
+    # Only try to read weights list if not using PyTorch weights
+    if not pytorch_weights:
+        # read file that contains list of weight files
+        f = open(weights_list, 'r')
+        try:  
+            weight_files = [line.strip() for line in f]
+        finally:
+            f.close()
+
+    # Load the simulation script from JSON
+    try:
+        with open(script, 'r') as f:
+            script_data = json.load(f)
+            
+        # Extract simulation parameters from JSON
+        simulation_events = script_data['events']
+        LSNM_simulation_time = script_data['simulation_time']
+        script_params = script_data.get('parameters', {})
+    except json.JSONDecodeError as e:
+        print(f"Error parsing JSON file: {e}")
+        sys.exit(1)
+    except FileNotFoundError:
+        print(f"Script file not found: {script}")
+        sys.exit(1)
+
+    # Continue with the rest of the simulation setup and execution
     start_time = time_module.asctime(time_module.localtime(time_module.time()))
-    print ('\rStart Time: ', start_time) 
-    print ('\rBuilding network...')
+    print('\rStart Time: ', start_time)
+    print('\rBuilding network...')
 
     if tvb_link == None:
         useTVBConnectome=False
@@ -136,10 +251,10 @@ def run(model, weights_list, script, tvb_link):
         
     # declare a file name for the output file where the neural network structure will be
     # stored (modules and weights among modules)
-    neural_network = 'neuralnet.json'
+    neural_network = os.path.join(output_dir, 'neuralnet.json')
 
     # declare a file name for the output file that contains simulation log
-    log_file = 'log.txt'
+    log_file = os.path.join(output_dir, 'log.txt')
 
     # the following are the weights used among excitatory and inhibitory populations
     # in the TVB's implementation of the Wilson-Cowan equations. These values were
@@ -163,7 +278,7 @@ def run(model, weights_list, script, tvb_link):
         white_matter = connectivity.Connectivity.from_file("connectivity_998.zip")
         
         # Define the transmission speed of white matter tracts (4 mm/ms)
-        white_matter.speed = numpy.array([TVB_speed])
+        white_matter.speed = np.array([TVB_speed])
 
         # Define the coupling function between white matter tracts and brain regions
         white_matter_coupling = coupling.Linear(a=TVB_global_coupling_strength)
@@ -328,16 +443,16 @@ def run(model, weights_list, script, tvb_link):
         #         0: destination module (where is the connection going to)
         #         1: X coordinate of location of destination unit
         #         2: Y coordinate of location of destination unit
-        #         3: Connection weight
+        #         3: Connection weight 
         modules = {m[0]: m[1:] for m in modules}
 
         # read file that contains list of weight files, store the list of files in a python list,
         # and close the file safely
-        f = open(weights_list, 'r')
-        try:  
-            weight_files = [line.strip() for line in f]
-        finally:
-            f.close()
+        # f = open(weights_list, 'r')  # Remove this line
+        # try:                         # Remove this block
+        #     weight_files = [line.strip() for line in f]
+        # finally:
+        #     f.close()
 
         # build a dictionary of replacements for parsing the weight files
         replacements = {'Connect': '',
@@ -434,17 +549,14 @@ def run(model, weights_list, script, tvb_link):
     # and signed synaptic activity (used for MEG source activity computation)
     for module in modules.keys():
         # open one output file per module
-        fs_neuronal.append(open(module + '.out', 'w'))
-        fs_abs_syn.append(open(module + '_abs_syn.out', 'w'))
-        fs_signed_syn.append(open(module + '_signed_syn.out', 'w'))
+        fs_neuronal.append(open(os.path.join(output_dir, module + '.out'), 'w'))
+        fs_abs_syn.append(open(os.path.join(output_dir, module + '_abs_syn.out'), 'w'))
+        fs_signed_syn.append(open(os.path.join(output_dir, module + '_signed_syn.out'), 'w'))
 
     # create a dictionary so that each module name is associated with one output file
     fs_dict_neuronal  = dict(zip(modules.keys(), fs_neuronal))
     fs_dict_abs_syn   = dict(zip(modules.keys(), fs_abs_syn))
     fs_dict_signed_syn= dict(zip(modules.keys(), fs_signed_syn))
-
-    # import the experimental script and store in a vaiable to use later
-    experiment_script = importlib.import_module(script)
 
     # open a file where we will dump the whole data structure (model and weights) in case it needs
     # to be used later, for inpection and/or visualization of neural network. We chose to use JSON
@@ -464,10 +576,10 @@ def run(model, weights_list, script, tvb_link):
     random_state = np.random.RandomState()
 
     # define length of TVB simulation in ms
-    TVB_simulation_length = experiment_script.LSNM_simulation_time * timesteps_to_time_constant
+    TVB_simulation_length = LSNM_simulation_time * timesteps_to_time_constant
 
     # initialize number of timesteps for simulation
-    sim_percentage = 100.0/experiment_script.LSNM_simulation_time
+    sim_percentage = 100.0/LSNM_simulation_time
 
     # run the simulation for the number of timesteps given
     print ('\rRunning simulation...')        
@@ -479,17 +591,24 @@ def run(model, weights_list, script, tvb_link):
         for raw in sim(simulation_length=TVB_simulation_length, random_state=random_state.get_state()):
             
             # convert current TVB connectome electrical activity to a numpy array 
-            RawData = numpy.array(raw[0][1])
+            RawData = np.array(raw[0][1])
             
-            # check script to see if there are any event to be presented to the LSNM
-            # network at current timestep t
-            current_event=simulation_events.get(str(t))
+            # check script to see if there are any events to be presented
+            current_event = simulation_events.get(str(t))
 
-            # then, introduce the event (if any was found)!
-            # Note that 'modules' is defined within 'sim.py', whereas 'script_params' is
-            # defined within the simulation script uploaded at runtime
+            # Handle the event if one exists for this timestep
             if current_event is not None:
-                current_event(modules, script_params)
+                event_type = current_event.get('type')
+                duration = current_event.get('duration')
+                
+                # Handle different event types
+                if event_type == 'rest':
+                    # Handle rest event
+                    pass
+                elif event_type == 'stimulus':
+                    # Handle stimulus event
+                    pass
+                # Add more event types as needed
 
             # The following 'for loop' computes sum of excitatory and sum of inhibitory activities
             # at destination nodes using destination units and connecting weights provided
@@ -667,7 +786,7 @@ def run(model, weights_list, script, tvb_link):
                         # Write out neural and integrated synaptic activity, and reset
                         # integrated synaptic activity, but ONLY IF a given number of timesteps
                         # has elapsed (integration interval)
-                        if ((experiment_script.LSNM_simulation_time + t) % synaptic_interval) == 0:
+                        if ((LSNM_simulation_time + t) % synaptic_interval) == 0:
                             # write out neural activity first...
                             fs_dict_neuronal[m].write(repr(modules[m][8][x][y][0]) + ' ')
                             # now calculate and write out absolute sum of synaptic activity (for fMRI)...
@@ -691,7 +810,7 @@ def run(model, weights_list, script, tvb_link):
             # the current
             # time step, but ONLY IF a given number of timesteps has elapsed (integration
             # interval)
-            if ((experiment_script.LSNM_simulation_time + t) % synaptic_interval) == 0:
+            if ((LSNM_simulation_time + t) % synaptic_interval) == 0:
                 # append the current TVB node electrical activity to array
                 tvb_elec.append(current_tvb_neu)
                 # append current synaptic activity array to synaptic activity timeseries
@@ -749,17 +868,24 @@ def run(model, weights_list, script, tvb_link):
 
     elif useTVBConnectome == False :   # ... if not using TVB connectome...
 
-        for t in range(experiment_script.LSNM_simulation_time):
+        for t in range(LSNM_simulation_time):
             
-            # check script to see if there are any event to be presented to the LSNM
-            # network at current timestep t
-            current_event=experiment_script.simulation_events.get(str(t))
+            # check script to see if there are any events to be presented
+            current_event = simulation_events.get(str(t))
 
-            # then, introduce the event (if any was found)!
-            # Note that 'modules' is defined within 'sim.py', whereas 'script_params' is
-            # defined within the simulation script uploaded at runtime
+            # Handle the event if one exists for this timestep
             if current_event is not None:
-                current_event(modules, experiment_script.script_params)
+                event_type = current_event.get('type')
+                duration = current_event.get('duration')
+                
+                # Handle different event types
+                if event_type == 'rest':
+                    # Handle rest event
+                    pass
+                elif event_type == 'stimulus':
+                    # Handle stimulus event
+                    pass
+                # Add more event types as needed
 
             # The following 'for loop' computes sum of excitatory and sum of inhibitory activities
             # at destination nodes using destination units and connecting weights provided
@@ -821,7 +947,7 @@ def run(model, weights_list, script, tvb_link):
                         # Write out neural and integrated synaptic activity, and reset
                         # integrated synaptic activity, but ONLY IF a given number of timesteps
                         # has elapsed (integration interval)
-                        if ((experiment_script.LSNM_simulation_time + t) % synaptic_interval) == 0:
+                        if ((LSNM_simulation_time + t) % synaptic_interval) == 0:
                             # write out neural activity first...
                             fs_dict_neuronal[m].write(repr(modules[m][8][x][y][0]) + ' ')
                             # now calculate and write out absolute sum of synaptic activity (for fMRI)...
@@ -894,14 +1020,14 @@ def run(model, weights_list, script, tvb_link):
         
     if useTVBConnectome == True:
         # convert electrical and synaptic activity of TVB nodes into numpy arrays
-        TVB_elec        = numpy.array(tvb_elec)
-        TVB_abs_syna    = numpy.array(tvb_abs_syna)
-        TVB_signed_syna = numpy.array(tvb_signed_syna) 
+        TVB_elec        = np.array(tvb_elec)
+        TVB_abs_syna    = np.array(tvb_abs_syna)
+        TVB_signed_syna = np.array(tvb_signed_syna) 
 
         # now, save the TVB electrical and synaptic activities to separate files
-        numpy.save("tvb_neuronal.npy", TVB_elec)
-        numpy.save("tvb_abs_syn.npy", TVB_abs_syna)
-        numpy.save("tvb_signed_syn.npy", TVB_signed_syna)
+        np.save("tvb_neuronal.npy", TVB_elec)
+        np.save("tvb_abs_syn.npy", TVB_abs_syna)
+        np.save("tvb_signed_syn.npy", TVB_signed_syna)
             
     end_time = time_module.asctime(time_module.localtime(time_module.time()))
         
@@ -910,9 +1036,10 @@ def run(model, weights_list, script, tvb_link):
     with open(log_file, 'w') as f:
         f.write('* Simulation Start Time: ' + start_time)
         f.write('\n* Simulation End Time: ' + end_time)
-        f.write('\n* Simulation duration (timesteps): ' + str(experiment_script.LSNM_simulation_time))
+        f.write('\n* Simulation duration (timesteps): ' + str(LSNM_simulation_time))
         f.write('\n* Model description used: ' + model)
-        f.write('\n* Weights list used: ' + weights_list)
+        # Add check for weights_list being None
+        f.write('\n* Weights list used: ' + (weights_list if weights_list else "PyTorch weights"))
         f.write('\n* Neural net used: ' + neural_net)
         f.write('\n* Simulation script used: ' + script)            
         f.write('\n* Were weights changed to generate a new subject? ')
@@ -932,21 +1059,25 @@ def run(model, weights_list, script, tvb_link):
 
         
 def main(argv):
-    
-    model = ''
-    weights_list = ''
-    script = ''
-    tvb_link = ''
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--model', required=True, help='Model definition file (txt)')
-    parser.add_argument('-w', '--weights', required=True, help='Weights list file (txt)')
-    parser.add_argument('-s', '--script', required=True, help='Script file (py)')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-w', '--weights', help='Weights list file (txt)')
+    group.add_argument('--pytorch-weights', help='Path to PyTorch weights file (.pth)')
+    parser.add_argument('-s', '--script', required=True, help='Script file (json)')
     parser.add_argument('-l', '--links', required=False, help='Links to TVB connectome file (txt)')
-    args=parser.parse_args()
+    parser.add_argument('-o', '--output', default='.', help='Output directory (default: current directory)')
+    args = parser.parse_args()
     
-    run(args.model, args.weights, args.script, args.links)
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output, exist_ok=True)
     
+    # Update file paths to use output directory
+    neural_network = os.path.join(args.output, 'neuralnet.json')
+    log_file = os.path.join(args.output, 'log.txt')
+    
+    run(args.model, args.weights, args.script, args.links, args.pytorch_weights, args.output)
+
 # the following is the standard boilerplate that calls the main() function
 if __name__ == '__main__':
     main(sys.argv[1:])
