@@ -90,3 +90,9 @@ ENV/
 
 # output files
 .out
+
+# Ignore the data directory
+data/
+
+# Ignore the weights file
+*.pth
