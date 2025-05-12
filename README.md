@@ -110,3 +110,12 @@ To run LSNM and TVB together you will need to build a conda environment that con
 ```
 ../lsnm -m model.txt -w weightslist.txt -s script_DMS_198_seconds -l lsnm_tvb_link.txt 
 ```
+
+## How to Learn Weights for LSNM
+
+The `learn_weights.py` script trains a neural network to generate weights for the LSNM model. These weights can then be used to simulate brain activity.
+
+### Usage
+To learn the weights, run:
+```bash
+python learn_weights.py --dataset <path_to_dataset> --output <output_weights_file>
